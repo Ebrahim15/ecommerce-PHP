@@ -1,6 +1,7 @@
 <?php
 
-class Prodcut extends Dbh{ 
+class Prodcut extends Dbh
+{
     private $id;
     private $name;
     private $inStock;
@@ -8,12 +9,12 @@ class Prodcut extends Dbh{
     private $category;
     private $brand;
     private $typename;
-    private $price;
+    private $prices;
     private $currency;
     private $gallery;
     private $attributes;
 
-    public function __construct($id, $name, $inStock, $description, $category, $brand, $price, $currency, $gallery, $attributes, $typename = "Product" ) 
+    public function __construct($id, $name, $inStock, $description, $category, $brand, $prices, $gallery, $attributes, $typename = "Product")
     {
         $this->id = $id;
         $this->name = $name;
@@ -22,13 +23,14 @@ class Prodcut extends Dbh{
         $this->category = $category;
         $this->brand = $brand;
         $this->typename = $typename;
-        $this->price = $price;
-        $this->currency = $currency;
+        $this->prices = $prices;
+
         $this->gallery = $gallery;
         $this->attributes = $attributes;
     }
 
-    private function insertProduct() {
+    private function insertProduct()
+    {
         $query = "INSERT INTO products VALUES 
                 ('" . $this->id . "', 
                 '" . $this->name . "', 
@@ -37,19 +39,20 @@ class Prodcut extends Dbh{
                 '" . $this->category . "',  
                 '" . $this->brand . "',  
                 '" . $this->typename . "',  
-                '" . $this->price . "',  
+                '" . $this->prices . "',  
                 '" . $this->currency . "',   
                 '" . $this->gallery . "',  
                 '" . $this->attributes . "');";
         return mysqli_multi_query(parent::connect(), $query);
     }
 
-    public function postProduct() {
+    public function postProduct()
+    {
         try {
             $this->insertProduct();
             parent::closeConnection();
-        }
-        catch(mysqli_sql_exception) {
+        } catch (mysqli_sql_exception) {
+
         }
     }
 }

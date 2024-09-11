@@ -1,5 +1,6 @@
 <?php
 require_once "Classes/Dbh.php";
+require_once "Classes/Api.php";
 require_once "Classes/Product.php";
 require_once "Classes/Category.php";
 
@@ -15,6 +16,7 @@ $data = file_get_contents($filename);
 
 $array = json_decode($data, true);
 
+
 foreach ($array as $tablesKey => $tables) {
     foreach ($tables as $tableKey => $table) {
         
@@ -28,6 +30,7 @@ foreach ($array as $tablesKey => $tables) {
             // INSERT PRODUCTS DATA
             foreach ($table as $table_data) {
                 $gallery = json_encode($table_data['gallery']);
+                $prices = json_encode($table_data['prices']);
                 $attributes = json_encode($table_data['attributes']);
                 $product = new Prodcut(
                     $table_data['id'], 
@@ -36,8 +39,9 @@ foreach ($array as $tablesKey => $tables) {
                     $table_data["description"],  
                     $table_data['category'],  
                     $table_data['brand'],  
-                    $table_data['prices'][0]['amount'],  
-                    $table_data['prices'][0]['currency']['label'],
+                    // $table_data['prices'][0]['amount'],  
+                    // $table_data['prices'][0]['currency']['label'],
+                    $prices,
                     $gallery,  
                     $attributes
                 );
