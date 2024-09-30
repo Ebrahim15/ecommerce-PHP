@@ -27,6 +27,10 @@ class Prodcut extends Model
         parent::__construct("products");
     }
 
+    public function getAllProducts(){
+        return parent::getAllData();
+    }
+
     // private function insertProduct()
     // {
     //     $query = "INSERT INTO products VALUES 

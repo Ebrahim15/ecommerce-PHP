@@ -39,7 +39,7 @@ foreach ($array as $tablesKey => $tables) {
             $attributes = [];
             $currencies = [];
             $prices = [];
-            $gallery = [];
+            $imageUrls = [];
 
             foreach ($table as $product) {
                 // Remove any array datatype
@@ -47,6 +47,11 @@ foreach ($array as $tablesKey => $tables) {
                     return (gettype($field) !== "array");
                 });
                 array_push($products, $modified_product);
+
+                // Insert images urls
+                foreach ($product['gallery'] as $url) {
+                    array_push($imageUrls, ["productId" => $product['id'], "imageUrl" => $url]);
+                };
 
                 // Insert prices & currencies table data
                 foreach ($product['prices'] as $price) {
@@ -81,6 +86,9 @@ foreach ($array as $tablesKey => $tables) {
 
             $product = new Prodcut();
             $product->insertData($products);
+
+            $gallery = new Gallery();
+            $gallery->insertData($imageUrls);
 
             $currency = new Currency();
             $currency->insertData($currencies);

@@ -10,6 +10,7 @@ class Model
     private $conn;
 
     private $tableName;
+    private $data;
 
     public function __construct($tableName)
     {
@@ -67,4 +68,21 @@ class Model
     }
 
     // Get the data from the database
+    private function handleGetAll($tableName)
+    {
+        try {
+            $query = "SELECT * FROM $tableName";
+            $result = $this->connect()->query($query);
+            $this->data = $result->fetch_all(MYSQLI_ASSOC);
+            $this->closeConnection();           
+            return $this->data;
+        }
+        catch(mysqli_sql_exception){
+            echo "Error geting data.";
+        }
+    }
+
+    public function getAllData(){
+        return $this->handleGetAll($this->tableName);
+    }
 }
