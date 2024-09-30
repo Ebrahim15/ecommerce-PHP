@@ -1,6 +1,6 @@
 <?php
 
-class Prodcut extends Dbh
+class Prodcut extends Model
 {
     private $id;
     private $name;
@@ -9,50 +9,44 @@ class Prodcut extends Dbh
     private $category;
     private $brand;
     private $typename;
-    private $prices;
-    private $currency;
-    private $gallery;
-    private $attributes;
 
-    public function __construct($id, $name, $inStock, $description, $category, $brand, $prices, $gallery, $attributes, $typename = "Product")
+
+    // public function __construct($id, $name, $inStock, $description, $category, $brand, $typename = "Product")
+    // {
+    //     $this->id = $id;
+    //     $this->name = $name;
+    //     $this->inStock = $inStock;
+    //     $this->description = $description;
+    //     $this->category = $category;
+    //     $this->brand = $brand;
+    //     $this->typename = $typename;
+    // }
+    
+    public function __construct()
     {
-        $this->id = $id;
-        $this->name = $name;
-        $this->inStock = $inStock;
-        $this->description = $description;
-        $this->category = $category;
-        $this->brand = $brand;
-        $this->typename = $typename;
-        $this->prices = $prices;
-
-        $this->gallery = $gallery;
-        $this->attributes = $attributes;
+        parent::__construct("products");
     }
 
-    private function insertProduct()
-    {
-        $query = "INSERT INTO products VALUES 
-                ('" . $this->id . "', 
-                '" . $this->name . "', 
-                '" . $this->inStock . "', 
-                '" . $this->description . "',  
-                '" . $this->category . "',  
-                '" . $this->brand . "',  
-                '" . $this->typename . "',  
-                '" . $this->prices . "',  
-                '" . $this->currency . "',   
-                '" . $this->gallery . "',  
-                '" . $this->attributes . "');";
-        return mysqli_multi_query(parent::connect(), $query);
-    }
+    // private function insertProduct()
+    // {
+    //     $query = "INSERT INTO products VALUES 
+    //             ('" . $this->id . "', 
+    //             '" . $this->name . "', 
+    //             '" . $this->inStock . "', 
+    //             '" . $this->description . "',  
+    //             '" . $this->category . "',  
+    //             '" . $this->brand . "',  
+    //             '" . $this->typename . "');";
+    //     return mysqli_multi_query(parent::connect(), $query);
+    // }
 
-    public function postProduct()
-    {
-        try {
-            $this->insertProduct();
-            parent::closeConnection();
-        } catch (mysqli_sql_exception) {
+    // public function postProduct()
+    // {
+    //     try {
+    //         $this->insertProduct();
+    //         parent::closeConnection();
+    //     } catch (mysqli_sql_exception) {
 
-        }
-    }
+    //     }
+    // }
 }
