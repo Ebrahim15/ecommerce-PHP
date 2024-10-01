@@ -3,8 +3,17 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../vendor/autoload.php';
-require_once "../Classes/Dbh.php";
-require_once "../Classes/Api.php";
+
+require_once "../src/Model.php";
+require_once "../src/Controller.php";
+require_once "../Controllers/Api.php";
+require_once "../Classes/Product.php";
+require_once "../Classes/AttributeItem.php";
+require_once "../Classes/AttributeSet.php";
+require_once "../Classes/Category.php";
+require_once "../Classes/Currency.php";
+require_once "../Classes/Gallery.php";
+require_once "../Classes/Price.php";
 
 header('Content-Type: application/json; charset=UTF-8');
 header('Access-Control-Allow-Origin: *');
@@ -13,50 +22,38 @@ header('Access-Control-Allow-Headers: *');
 // use GraphQL\GraphQL;
 use GraphQL\GraphQL as GraphQLBase;
 use GraphQL\Type\Definition\ObjectType;
+use GraphQL\Type\Definition\ResolveInfo;
 use GraphQL\Type\Definition\Type;
 use GraphQL\Type\Schema;
 use GraphQL\Type\SchemaConfig;
 
 
-// $method = $_SERVER['REQUEST_METHOD'];
-// $tableName = "products";
 
-// $api = new Api($method, $tableName);
-
-// $products = $api->getData();
 
 class GraphQL
 {
     static public function handle()
     {
-        function products($product)
-        {
-            $object = (object) [
-                ...$product,
-                'gallery' => json_decode($product['gallery']),
-                'attributes' => json_decode($product['attributes']),
-                // 'price' => json_decode($product['price']),
-                'price' => array_values(json_decode($product['price']))[0],
-            ];
-            return $object;
-        }
+        $method = $_SERVER['REQUEST_METHOD'];
+        $products = new Api($method, $product = new Prodcut());
+        $categories = new Api($method, $product = new Category());
+        $attributes = new Api($method, $product = new AttributeItem());
+        $attributeSets = new Api($method, $product = new AttributeSet());
+        $prices = new Api($method, $product = new Price());
+        $currencies = new Api($method, $product = new Currency());
+        $gallery = new Api($method, $product = new Gallery());
 
+        // echo json_encode($currencies->getData());
         try {
             $method = $_SERVER['REQUEST_METHOD'];
 
-            $productsApi = new Api($method, "products");
-
-            $products = $productsApi->getData();
-
-            $categoriesApi = new Api($method, "categories");
-
-            $categories = $categoriesApi->getData();
-
-            // echo json_encode(array_filter(array_map('products', $products), fn($product) => $product->id === "jacket-canada-goosee"));
             // Types
             $attributeType = new ObjectType([
                 'name' => 'Attribute',
                 'fields' => [
+                    'attributeSetId' => [
+                        'type' => Type::nonNull(Type::string())
+                    ],
                     'displayValue' => [
                         'type' => Type::nonNull(Type::string())
                     ],
@@ -75,11 +72,14 @@ class GraphQL
             $attributeSetType = new ObjectType([
                 'name' => 'AttributeSet',
                 'fields' => [
-                    'id' => [
+                    'attributeSetId' => [
                         'type' => Type::nonNull(Type::id())
                     ],
-                    'items' => [
-                        'type' => Type::nonNull(Type::listOf(Type::nonNull($attributeType)))
+                    'productId' => [
+                        'type' => Type::nonNull(Type::string())
+                    ],
+                    'id' => [
+                        'type' => Type::nonNull(Type::string())
                     ],
                     'name' => [
                         'type' => Type::nonNull(Type::string())
@@ -90,12 +90,19 @@ class GraphQL
                     'typename' => [
                         'type' => Type::nonNull(Type::string())
                     ],
+                    'items' => [
+                        'type' => Type::nonNull(Type::listOf($attributeType)),
+                        'resolve' => fn($attributeSet) => array_filter($attributes->getData(), fn($attribute) => $attribute['attributeSetId'] === $attributeSet['attributeSetId'])
+                    ]
                 ],
             ]);
 
             $currencyType = new ObjectType([
                 'name' => 'Currency',
                 'fields' => [
+                    'currencyId' => [
+                        'type' => Type::nonNull(Type::id())
+                    ],
                     'label' => [
                         'type' => Type::nonNull(Type::string())
                     ],
@@ -111,17 +118,47 @@ class GraphQL
             $priceType = new ObjectType([
                 'name' => 'Price',
                 'fields' => [
+                    'id' => [
+                        'type' => Type::nonNull(Type::id())
+                    ],
+                    'productId' => [
+                        'type' => Type::nonNull(Type::string())
+                    ],
                     'amount' => [
                         'type' => Type::nonNull(Type::float())
                     ],
-                    'currency' => [
-                        'type' => Type::nonNull($currencyType)
+                    'currencyId' => [
+                        'type' => Type::nonNull(Type::string())
                     ],
                     'typename' => [
                         'type' => Type::nonNull(Type::string())
                     ],
+                    'currency' => [
+                        'type' => Type::nonNull($currencyType),
+                        'resolve' => fn($price) => array_filter($currencies->getData(), fn($currency) => $currency['currencyId'] === $price['currencyId'])[0]
+                    ]
                 ],
             ]);
+
+            $galleryType = new ObjectType([
+                'name' => 'Gallery',
+                'fields' => [
+                    'imageUrl' => [
+                        'type' => Type::nonNull(Type::id())
+                    ],
+                    'productId' => [
+                        'type' => Type::nonNull(Type::string())
+                    ],
+                ]
+            ]);
+
+            $categoryType = new ObjectType(([
+                'name' => 'Category',
+                'fields' => [
+                    'name' => Type::nonNull(Type::id()),
+                    'typename' => Type::nonNull(Type::string())
+                ]
+            ]));
 
             $productType = new ObjectType([
                 'name' => 'Product',
@@ -135,37 +172,33 @@ class GraphQL
                     'inStock' => [
                         'type' => Type::nonNull(Type::boolean())
                     ],
-                    'gallery' => [
-                        'type' => Type::nonNull(Type::listOf(Type::nonNull(Type::string())))
-                    ],
                     'description' => [
                         'type' => Type::nonNull(Type::string())
                     ],
                     'category' => [
-                        'type' => Type::nonNull(Type::string())
-                    ],
-                    'attributes' => [
-                        'type' => Type::listOf(Type::nonNull($attributeSetType))
-                    ],
-                    'price' => [
-                        'type' => Type::nonNull(Type::nonNull($priceType))
+                        'type' => Type::nonNull($categoryType)
                     ],
                     'brand' => [
                         'type' => Type::nonNull(Type::string())
                     ],
                     'typename' => [
                         'type' => Type::nonNull(Type::string())
+                    ],
+                    'gallery' => [
+                        'type' => Type::nonNull(Type::listOf($galleryType)),
+                        'resolve' => fn($product, array $args) => array_filter($gallery->getData(), fn($image) => $image['productId'] === $product['id'])
+                    ],
+                    'price' => [
+                        'type' => Type::nonNull(Type::listOf($priceType)),
+                        'resolve' => fn($product, array $args) => array_filter($prices->getData(), fn($price) => $price['productId'] === $product['id'])
+                    ],
+                    'attributes' => [
+                        'type' => Type::nonNull(Type::listOf($attributeSetType)),
+                        'resolve' => fn($product, array $args) => array_filter($attributeSets->getData(), fn($attributeSet) => $attributeSet['productId'] === $product['id'])
                     ]
                 ],
             ]);
 
-            $categoryType = new ObjectType(([
-                'name' => 'Category',
-                'fields' => [
-                    'name' => Type::nonNull(Type::string()),
-                    'typename' => Type::nonNull(Type::string())
-                ]
-            ]));
 
             // Query (Entry points)
             $queryType = new ObjectType([
@@ -181,7 +214,7 @@ class GraphQL
                     'products' => [
                         'type' => Type::nonNull(Type::listOf($productType)),
                         // 'resolve' => static fn() => $products
-                        'resolve' => static fn() => array_map('products', $products)
+                        'resolve' => static fn() => $products->getData()
                     ],
                     'product' => [
                         'type' => Type::nonNull($productType),
@@ -189,12 +222,12 @@ class GraphQL
                         'args' => [
                             'productId' => ['type' => Type::id()]
                         ],
-                        'resolve' => static fn($_, array $args) => array_values(array_filter(array_map('products', $products), fn($product) => $product->id === $args['productId']))[0]
+                        'resolve' => static fn($_, array $args) => array_filter($products->getData(), fn($product) => $product['id'] === $args['productId'])
                         // 'resolve' => static fn($_, array $args): string => $args['productId']
                     ],
                     'categories' => [
                         'type' => Type::nonNull(Type::listOf($categoryType)),
-                        'resolve' => static fn() => $categories
+                        'resolve' => static fn() => $categories->getData()
                     ]
                 ],
             ]);

@@ -82,6 +82,21 @@ class Model
         }
     }
 
+    // MIGHT NEED THIS FUNCTION FOR GRAPHQL REQUESTS
+    // private function handleRequest() {
+    //     switch ($this->method) {
+    //         case 'GET':
+    //             $this->handleGetAll($this->tableName);
+    //             break;
+    //         case 'POST':
+    //             $this->handleGetAll($this->tableName);
+    //             break;
+    //         default:
+    //             echo "Invalid request method";
+    //             break;
+    //     }
+    // }
+
     public function getAllData(){
         return $this->handleGetAll($this->tableName);
     }

@@ -1,14 +1,12 @@
 <?php
-require_once "Classes/Dbh.php";
-require_once "Classes/Api.php";
-require_once "Classes/Model.php";
-require_once "Classes/Product.php";
-require_once "Classes/Category.php";
-require_once "Classes/Price.php";
-require_once "Classes/Gallery.php";
-require_once "Classes/Currency.php";
-require_once "Classes/AttributeItem.php";
-require_once "Classes/AttributeSet.php";
+require_once "../src/Model.php";
+require_once "../Classes/Product.php";
+require_once "../Classes/Category.php";
+require_once "../Classes/Price.php";
+require_once "../Classes/Gallery.php";
+require_once "../Classes/Currency.php";
+require_once "../Classes/AttributeItem.php";
+require_once "../Classes/AttributeSet.php";
 
 $db_server = "localhost";
 $db_user = "root";
