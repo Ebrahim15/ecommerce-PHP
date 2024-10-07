@@ -224,32 +224,11 @@ class GraphQL
                     'productId' => [
                         'type' => Type::nonNull(Type::id()),
                     ],
-                    'selectedAttributes' => [
-                        'type' => Type::nonNull(Type::listOf($selectedAttributes))
-                    ],
-                    'price' => [
-                        'type' => Type::nonNull(Type::float())
-                    ],
-                    'typename' => [
-                        'type' => Type::nonNull(Type::string())
-                    ]
+                    // 'selectedAttributes' => [
+                    //     'type' => Type::nonNull(Type::listOf($selectedAttributes))
+                    // ]
                 ]
             ]);
-
-            $orderType = new ObjectType([
-                'name' => 'Order',
-                'fields' => [
-                    'cart' => [
-                        'type' => Type::nonNull(Type::listOf($cartType)),
-                        // 'resolve' => static fn() => $products
-                        'resolve'
-                    ],
-                    'typename' => [
-                        'type' => Type::nonNull(Type::string())
-                    ]
-                ]
-            ]);
-
 
             // Query (Entry points)
             $queryType = new ObjectType([
@@ -284,15 +263,26 @@ class GraphQL
                 ],
             ]);
 
+
+            $orderType = new ObjectType(([
+                'name' => 'Order',
+                'fields' => [
+                    'cart' => [
+                        'type' => Type::nonNull(Type::listOf($cartType)),
+                    ]
+                ]
+            ]));
+
             $orderInput = new InputObjectType([
                 'name' => 'OrderInput',
                 'fields' => [
                     'cart' => [
-                        'type' => Type::nonNull(Type::listOf($productType)),
-                        'description' => 'user cart'
+                        'type' => Type::nonNull(Type::listOf($cartType)),
+                        'description' => 'cart'
                     ]
-                ]
+                ],
             ]);
+            
 
             $mutationType = new ObjectType([
                 'name' => 'Mutation',
@@ -308,9 +298,9 @@ class GraphQL
                     'addOrder' => [
                         'type' => Type::nonNull($orderType),
                         'args' => [
-                            'order' => ['type' => Type::nonNull($orderInput)]
+                            'cart' => ['type' => Type::nonNull($orderInput)]
                         ],
-                        'resolve' => static function($_, array $args) {$newOrder = new Order($args['order']);}
+                        'resolve' => static function($_, array $args) {$newOrder = new Order($args['cart']);}
                     ]
                 ],
             ]);
@@ -335,7 +325,7 @@ class GraphQL
             $variableValues = $input['variables'] ?? null;
 
             $rootValue = ['prefix' => 'You said: '];
-            $result = GraphQLBase::executeQuery($schema, $query, $rootValue);
+            $result = GraphQLBase::executeQuery($schema, $query, $rootValue, null, $variableValues);
             $output = $result->toArray();
         } catch (Throwable $e) {
             $output = [
