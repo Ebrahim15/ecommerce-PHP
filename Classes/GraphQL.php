@@ -14,6 +14,7 @@ require_once "../Classes/Category.php";
 require_once "../Classes/Currency.php";
 require_once "../Classes/Gallery.php";
 require_once "../Classes/Price.php";
+require_once "../Classes/Order.php";
 
 header('Content-Type: application/json; charset=UTF-8');
 header('Access-Control-Allow-Origin: *');
@@ -21,6 +22,8 @@ header('Access-Control-Allow-Headers: *');
 
 // use GraphQL\GraphQL;
 use GraphQL\GraphQL as GraphQLBase;
+use GraphQL\Type\Definition\InputObjectType;
+use GraphQL\Type\Definition\InputType;
 use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\ResolveInfo;
 use GraphQL\Type\Definition\Type;
@@ -43,7 +46,6 @@ class GraphQL
         $currencies = new Api($method, $product = new Currency());
         $gallery = new Api($method, $product = new Gallery());
 
-        // echo json_encode($currencies->getData());
         try {
             $method = $_SERVER['REQUEST_METHOD'];
 
@@ -155,8 +157,12 @@ class GraphQL
             $categoryType = new ObjectType(([
                 'name' => 'Category',
                 'fields' => [
-                    'name' => Type::nonNull(Type::id()),
-                    'typename' => Type::nonNull(Type::string())
+                    'name' => [
+                        'type' => Type::nonNull(Type::id()),
+                    ],
+                    'typename' => [
+                        'type' => Type::nonNull(Type::string())
+                        ]
                 ]
             ]));
 
@@ -176,7 +182,8 @@ class GraphQL
                         'type' => Type::nonNull(Type::string())
                     ],
                     'category' => [
-                        'type' => Type::nonNull($categoryType)
+                        'type' => Type::nonNull($categoryType),
+                        'resolve' => fn($product) => array_values(array_filter($categories->getData(), fn($category) => $category['name'] === $product['category']))[0]
                     ],
                     'brand' => [
                         'type' => Type::nonNull(Type::string())
@@ -197,6 +204,50 @@ class GraphQL
                         'resolve' => fn($product, array $args) => array_filter($attributeSets->getData(), fn($attributeSet) => $attributeSet['productId'] === $product['id'])
                     ]
                 ],
+            ]);
+
+            $selectedAttributes = new ObjectType([
+                'name' => 'SelectedAttributes',
+                'fields' => [
+                    'attributeType' => [
+                        'type' => Type::nonNull(Type::string())
+                    ],
+                    'attributeValue' => [
+                        'type' => Type::nonNull(Type::string())
+                    ],
+                ]
+                ]);
+
+            $cartType = new ObjectType([
+                'name' => 'Cart',
+                'fields' => [
+                    'productId' => [
+                        'type' => Type::nonNull(Type::id()),
+                    ],
+                    'selectedAttributes' => [
+                        'type' => Type::nonNull(Type::listOf($selectedAttributes))
+                    ],
+                    'price' => [
+                        'type' => Type::nonNull(Type::float())
+                    ],
+                    'typename' => [
+                        'type' => Type::nonNull(Type::string())
+                    ]
+                ]
+            ]);
+
+            $orderType = new ObjectType([
+                'name' => 'Order',
+                'fields' => [
+                    'cart' => [
+                        'type' => Type::nonNull(Type::listOf($cartType)),
+                        // 'resolve' => static fn() => $products
+                        'resolve'
+                    ],
+                    'typename' => [
+                        'type' => Type::nonNull(Type::string())
+                    ]
+                ]
             ]);
 
 
@@ -220,9 +271,10 @@ class GraphQL
                         'type' => Type::nonNull($productType),
                         // 'type' => Type::nonNull(Type::string()),
                         'args' => [
-                            'productId' => ['type' => Type::id()]
+                            'productId' => ['type' => Type::nonNull(Type::id())]
+                            // 'productId' => ['type' => Type::id()]
                         ],
-                        'resolve' => static fn($_, array $args) => array_filter($products->getData(), fn($product) => $product['id'] === $args['productId'])
+                        'resolve' => static fn($_, array $args) => array_values(array_filter($products->getData(), fn($product) => $product['id'] === $args['productId']))[0]
                         // 'resolve' => static fn($_, array $args): string => $args['productId']
                     ],
                     'categories' => [
@@ -230,6 +282,16 @@ class GraphQL
                         'resolve' => static fn() => $categories->getData()
                     ]
                 ],
+            ]);
+
+            $orderInput = new InputObjectType([
+                'name' => 'OrderInput',
+                'fields' => [
+                    'cart' => [
+                        'type' => Type::nonNull(Type::listOf($productType)),
+                        'description' => 'user cart'
+                    ]
+                ]
             ]);
 
             $mutationType = new ObjectType([
@@ -243,6 +305,13 @@ class GraphQL
                         ],
                         'resolve' => static fn($calc, array $args): int => $args['x'] + $args['y'],
                     ],
+                    'addOrder' => [
+                        'type' => Type::nonNull($orderType),
+                        'args' => [
+                            'order' => ['type' => Type::nonNull($orderInput)]
+                        ],
+                        'resolve' => static function($_, array $args) {$newOrder = new Order($args['order']);}
+                    ]
                 ],
             ]);
 
@@ -251,7 +320,7 @@ class GraphQL
             $schema = new Schema(
                 (new SchemaConfig())
                     ->setQuery($queryType)
-                // ->setMutation($mutationType)
+                    ->setMutation($mutationType)
             );
 
             $rawInput = file_get_contents('php://input');
@@ -261,7 +330,7 @@ class GraphQL
 
 
             $input = json_decode($rawInput, true);
-            $query = $input['query'];
+            $query = $input['query'] ?? null;
 
             $variableValues = $input['variables'] ?? null;
 
